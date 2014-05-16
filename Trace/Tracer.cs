@@ -63,30 +63,36 @@ namespace Common.Debug
         {
             _echoToConsole = echoToConsole;
 
-            // Use the file name template build the base file name
-            _mainFileName = string.Format(_fileNameTemplate, rootName, uniqueId);
+            if (!Directory.Exists(logPath))
+                Directory.CreateDirectory(logPath);
 
-            // Get the list of old  log files
-            string[] oldLogFiles = Directory.GetFiles(logPath, string.Format(_fileNameTemplate, rootName, "*"), SearchOption.TopDirectoryOnly);
-
-            // Sort the list by creation date
-            Array.Sort(oldLogFiles, new FileCreationTimeComparer());
-
-            // Keep only the last X revisions
-            for (int i = _keepRevisions; i < oldLogFiles.Length; i++)
+            if (!string.IsNullOrEmpty(logPath))
             {
-                // Delete the file
-                File.Delete(oldLogFiles[i]);
+                // Use the file name template build the base file name
+                _mainFileName = string.Format(_fileNameTemplate, rootName, uniqueId);
+
+                // Get the list of old  log files
+                string[] oldLogFiles = Directory.GetFiles(logPath, string.Format(_fileNameTemplate, rootName, "*"), SearchOption.TopDirectoryOnly);
+
+                // Sort the list by creation date
+                Array.Sort(oldLogFiles, new FileCreationTimeComparer());
+
+                // Keep only the last X revisions
+                for (int i = _keepRevisions; i < oldLogFiles.Length; i++)
+                {
+                    // Delete the file
+                    File.Delete(oldLogFiles[i]);
+                }
+
+                // Add the log path 
+                _mainFileName = Path.Combine(logPath, _mainFileName);
+
+                // Create the listener
+                _traceListener = new TextWriterTraceListener(_mainFileName);
+
+                // Setup the debug listener
+                Trace.Listeners.Add(_traceListener);
             }
-
-            // Add the log path 
-            _mainFileName = Path.Combine(logPath, _mainFileName);
-
-            // Create the listener
-            _traceListener = new TextWriterTraceListener(_mainFileName);
-
-            // Setup the debug listener
-            Trace.Listeners.Add(_traceListener);
 
             _initialized = true;
 
@@ -103,13 +109,16 @@ namespace Common.Debug
             // Flush the trace
             Trace.Flush();
 
-            // Remove the listener
-            Trace.Listeners.Remove(_traceListener);
+            if (_traceListener != null)
+            {
+                // Remove the listener
+                Trace.Listeners.Remove(_traceListener);
 
-            // Close the listener
-            _traceListener.Close();
-            _traceListener.Dispose();
-            _traceListener = null;
+                // Close the listener
+                _traceListener.Close();
+                _traceListener.Dispose();
+                _traceListener = null;
+            }
 
             // Close the trace
             Trace.Close();
