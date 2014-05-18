@@ -2,15 +2,44 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Common.Internet
 {
     public class Browser
     {
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        static extern uint ExtractIconEx(string szFileName, int nIconIndex, IntPtr[] phiconLarge, IntPtr[] phiconSmall, uint nIcons);
+
         public string Key { get; private set; }
         public string Name { get; private set; }
         public string Command { get; private set; }
         public string DefaultIcon { get; private set; }
+        public ImageSource DefaultImage { get; private set; }
+
+        public void LoadImage()
+        {
+            var parts = DefaultIcon.Split(',');
+            var index = int.Parse(parts[1]);
+
+            var large = new IntPtr[1];
+            var small = new IntPtr[1];
+            ExtractIconEx(parts[0], index, large, small, 1);
+
+            Icon img = Icon.FromHandle(small[0]);
+
+            Bitmap bitmap = img.ToBitmap();
+            IntPtr hBitmap = bitmap.GetHbitmap();
+
+            ImageSource wpfBitmap = Imaging.CreateBitmapSourceFromHBitmap(hBitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+
+            DefaultImage = wpfBitmap;
+        }
 
         public bool SupportsPrivate()
         {
