@@ -71,6 +71,11 @@ namespace Common.Internet
 
         public static Dictionary<string, Browser> DetectInstalledBrowsers()
         {
+            return DetectInstalledBrowsers(false);
+        }
+
+        public static Dictionary<string, Browser> DetectInstalledBrowsers(bool loadImages)
+        {
             var browsers = new Dictionary<string, Browser>();
 
             var browserKeys = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Clients\StartMenuInternet");
@@ -104,6 +109,9 @@ namespace Common.Internet
                     Command = (string) browserKeyPath.GetValue(null),
                     DefaultIcon = browserIconPath == null ? null : (string) browserIconPath.GetValue(null)
                 };
+
+                if (loadImages)
+                    browser.LoadImage();
 
                 browsers.Add(browserName, browser);
             }
