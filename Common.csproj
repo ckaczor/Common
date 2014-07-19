@@ -141,6 +141,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DateTimeExtensions.cs" />
+    <Compile Include="Security.cs" />
     <Compile Include="Trace\BeginEndTracer.cs" />
     <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="Helpers\ApplicationIsolation.cs" />
