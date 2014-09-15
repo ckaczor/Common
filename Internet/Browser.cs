@@ -21,6 +21,7 @@ namespace Common.Internet
         public string Command { get; private set; }
         public string DefaultIcon { get; private set; }
         public ImageSource DefaultImage { get; private set; }
+        public bool SupportsPrivate { get; private set; }
 
         public void LoadImage()
         {
@@ -39,11 +40,6 @@ namespace Common.Internet
             ImageSource wpfBitmap = Imaging.CreateBitmapSourceFromHBitmap(hBitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
 
             DefaultImage = wpfBitmap;
-        }
-
-        public bool SupportsPrivate()
-        {
-            return false;
         }
 
         public override string ToString()
@@ -69,14 +65,21 @@ namespace Common.Internet
             return true;
         }
 
-        public static Dictionary<string, Browser> DetectInstalledBrowsers()
-        {
-            return DetectInstalledBrowsers(false);
-        }
-
-        public static Dictionary<string, Browser> DetectInstalledBrowsers(bool loadImages)
+        public static Dictionary<string, Browser> DetectInstalledBrowsers(bool loadImages, bool includeUseSystemDefault)
         {
             var browsers = new Dictionary<string, Browser>();
+
+            if (includeUseSystemDefault)
+            {
+                var browser = new Browser
+                {
+                    Key = string.Empty,
+                    Name = "System Default",
+                    SupportsPrivate = false
+                };
+
+                browsers.Add(browser.Key, browser);
+            }
 
             var browserKeys = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Clients\StartMenuInternet");
 
@@ -107,7 +110,8 @@ namespace Common.Internet
                     Key = browserName,
                     Name = (string) browserKey.GetValue(null),
                     Command = (string) browserKeyPath.GetValue(null),
-                    DefaultIcon = browserIconPath == null ? null : (string) browserIconPath.GetValue(null)
+                    DefaultIcon = browserIconPath == null ? null : (string) browserIconPath.GetValue(null),
+                    SupportsPrivate = true
                 };
 
                 if (loadImages)
