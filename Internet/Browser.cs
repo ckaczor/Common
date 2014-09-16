@@ -65,6 +65,11 @@ namespace Common.Internet
             return true;
         }
 
+        public static Dictionary<string, Browser> DetectInstalledBrowsers()
+        {
+            return DetectInstalledBrowsers(false, false);
+        }
+
         public static Dictionary<string, Browser> DetectInstalledBrowsers(bool loadImages, bool includeUseSystemDefault)
         {
             var browsers = new Dictionary<string, Browser>();
