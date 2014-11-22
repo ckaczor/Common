@@ -147,6 +147,11 @@
   <ItemGroup>
     <Compile Include="DateTimeExtensions.cs" />
     <Compile Include="IO\ProcessAsync.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
     <Compile Include="Security.cs" />
     <Compile Include="Trace\BeginEndTracer.cs" />
     <Compile Include="Extensions\Extensions.cs" />
@@ -203,6 +208,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ChrisKaczor.pfx" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>

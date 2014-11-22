@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common.Properties;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -9,28 +10,36 @@ namespace Common.Update
 {
     public static class UpdateCheck
     {
-        private static string _server;
+        public delegate void ApplicationShutdownDelegate();
+        public delegate void ApplicationCurrentMessageDelegate(string title, string message);
+        public delegate bool ApplicationUpdateMessageDelegate(string title, string message);
 
-        public static VersionInfo VersionInfo { get; private set; }
+        public static ApplicationShutdownDelegate ApplicationShutdown = null;
+        public static ApplicationCurrentMessageDelegate ApplicationCurrentMessage = null;
+        public static ApplicationUpdateMessageDelegate ApplicationUpdateMessage = null;
+
+        public static string UpdateServer;
+        public static string UpdateFile;
+        public static string ApplicationName { get; set; }
+
+        public static VersionInfo RemoteVersion { get; private set; }
         public static string LocalInstallFile { get; private set; }
         public static bool UpdateAvailable { get; private set; }
 
-        public static Version CurrentVersion
+        public static Version LocalVersion
         {
             get { return Assembly.GetExecutingAssembly().GetName().Version; }
         }
 
-        public static bool CheckForUpdate(string server, string file)
+        public static bool CheckForUpdate()
         {
-            _server = server;
+            RemoteVersion = VersionInfo.Load(UpdateServer, UpdateFile);
 
-            VersionInfo = VersionInfo.Load(_server, file);
-
-            if (VersionInfo == null)
+            if (RemoteVersion == null)
                 return false;
 
-            var serverVersion = VersionInfo.Version;
-            var localVersion = CurrentVersion;
+            var serverVersion = RemoteVersion.Version;
+            var localVersion = LocalVersion;
 
             UpdateAvailable = serverVersion > localVersion;
 
@@ -39,12 +48,12 @@ namespace Common.Update
 
         public static async Task<bool> DownloadUpdate()
         {
-            if (VersionInfo == null)
+            if (RemoteVersion == null)
                 return false;
 
-            var remoteFile = _server + VersionInfo.InstallFile;
+            var remoteFile = UpdateServer + RemoteVersion.InstallFile;
 
-            LocalInstallFile = Path.Combine(Path.GetTempPath(), VersionInfo.InstallFile);
+            LocalInstallFile = Path.Combine(Path.GetTempPath(), RemoteVersion.InstallFile);
 
             var webClient = new WebClient();
 
@@ -55,12 +64,54 @@ namespace Common.Update
 
         public static bool InstallUpdate()
         {
-            if (VersionInfo == null)
+            if (RemoteVersion == null)
                 return false;
 
             Process.Start(LocalInstallFile, "/passive");
 
             return true;
         }
+
+        public static async void DisplayUpdateInformation(bool showIfCurrent)
+        {
+            CheckForUpdate();
+
+            // Check for an update
+            if (UpdateAvailable)
+            {
+                // Load the version string from the server
+                var serverVersion = RemoteVersion.Version;
+
+                // Format the check title
+                var updateCheckTitle = string.Format(Resources.UpdateCheckTitle, ApplicationName);
+
+                // Format the message
+                var updateCheckMessage = string.Format(Resources.UpdateCheckNewVersion, ApplicationName, serverVersion);
+
+                // Ask the user to update
+                if (ApplicationUpdateMessage(updateCheckTitle, updateCheckMessage))
+                    return;
+
+                // Get the update
+                await DownloadUpdate();
+
+                // Start to install the update
+                InstallUpdate();
+
+                // Restart the application
+                ApplicationShutdown();
+            }
+            else if (showIfCurrent)
+            {
+                // Format the check title
+                var updateCheckTitle = string.Format(Resources.UpdateCheckTitle, ApplicationName);
+
+                // Format the message
+                var updateCheckMessage = string.Format(Resources.UpdateCheckCurrent, ApplicationName);
+
+                ApplicationCurrentMessage(updateCheckTitle, updateCheckMessage);
+            }
+        }
+
     }
 }
