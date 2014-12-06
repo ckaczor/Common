@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Linq;
+using System.Reflection;
 
 namespace Common.Settings
 {
@@ -44,10 +45,12 @@ namespace Common.Settings
             set { _applicationName = value; }
         }
 
+        public bool DeleteOldVersionsOnUpgrade { get; set; }
+
         public override void Initialize(string name, NameValueCollection config)
         {
             if (string.IsNullOrEmpty(name))
-                name = this.GetType().Name;
+                name = GetType().Name;
 
             base.Initialize(name, config);
         }
@@ -55,10 +58,10 @@ namespace Common.Settings
         public override SettingsPropertyValueCollection GetPropertyValues(SettingsContext context, SettingsPropertyCollection properties)
         {
             // Create a new collection for the values
-            SettingsPropertyValueCollection values = new SettingsPropertyValueCollection();
+            var values = new SettingsPropertyValueCollection();
 
             // Get the current version number
-            string version = getCurrentVersionNumber();
+            var version = GetCurrentVersionNumber();
 
             // Open the data store
             var dataStore = OpenDataStore();
@@ -67,7 +70,7 @@ namespace Common.Settings
             foreach (SettingsProperty property in properties)
             {
                 // Get the setting value for the current version
-                SettingsPropertyValue value = getPropertyValue(dataStore, property, version);
+                var value = GetPropertyValue(dataStore, property, version);
 
                 // Add the value to the collection
                 values.Add(value);
@@ -82,7 +85,7 @@ namespace Common.Settings
         public override void SetPropertyValues(SettingsContext context, SettingsPropertyValueCollection properties)
         {
             // Get the current version number
-            string version = getCurrentVersionNumber();
+            var version = GetCurrentVersionNumber();
 
             // Open the data store
             var dataStore = OpenDataStore();
@@ -91,10 +94,11 @@ namespace Common.Settings
             foreach (SettingsPropertyValue propertyValue in properties)
             {
                 // If the property isn't dirty or it is null then we can skip it
-                if (!propertyValue.IsDirty || (propertyValue.SerializedValue == null)) { continue; }
+                if (!propertyValue.IsDirty || (propertyValue.SerializedValue == null))
+                    continue;
 
                 // Set the property value
-                setPropertyValue(dataStore, propertyValue, version);
+                SetPropertyValue(dataStore, propertyValue, version);
             }
 
             // Close the data store
@@ -105,21 +109,18 @@ namespace Common.Settings
 
         #region Version numbers
 
-        private string getCurrentVersionNumber()
+        private static string GetCurrentVersionNumber()
         {
-            return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            return Assembly.GetEntryAssembly().GetName().Version.ToString();
         }
 
-        private string getPreviousVersionNumber(object dataStore)
+        private string GetPreviousVersionNumber(object dataStore)
         {
             // Get the current version number
-            string currentVersion = getCurrentVersionNumber();
-
-            // Initialize the previous version number
-            string previousVersion = null;
+            var currentVersion = GetCurrentVersionNumber();
 
             // Get a distinct list of version numbers 
-            List<string> versionList = GetVersionList(dataStore);
+            var versionList = GetVersionList(dataStore);
 
             // Remove the current version
             versionList.Remove(currentVersion);
@@ -128,7 +129,7 @@ namespace Common.Settings
             versionList.Remove(string.Empty);
 
             // Sort the list using the Version object and get the first value
-            previousVersion = versionList.OrderByDescending(v => new Version(v)).FirstOrDefault();
+            var previousVersion = versionList.OrderByDescending(v => new Version(v)).FirstOrDefault();
 
             return previousVersion;
         }
@@ -137,13 +138,13 @@ namespace Common.Settings
 
         #region Value get and set
 
-        private SettingsPropertyValue getPropertyValue(object dataStore, SettingsProperty property, string version)
+        private SettingsPropertyValue GetPropertyValue(object dataStore, SettingsProperty property, string version)
         {
             // Create the value for the property
-            SettingsPropertyValue value = new SettingsPropertyValue(property);
+            var value = new SettingsPropertyValue(property);
 
             // Try to get the setting that matches the name and version
-            string setting = GetSettingValue(dataStore, property.Name, version);
+            var setting = GetSettingValue(dataStore, property.Name, version);
 
             // If the setting was found then set the value, otherwise leave as default
             value.SerializedValue = setting;
@@ -154,7 +155,7 @@ namespace Common.Settings
             return value;
         }
 
-        private void setPropertyValue(object dataStore, SettingsPropertyValue value, string version)
+        private void SetPropertyValue(object dataStore, SettingsPropertyValue value, string version)
         {
             // Set the value for this version
             SetSettingValue(dataStore, value.Property.Name, version, value.SerializedValue.ToString());
@@ -167,7 +168,7 @@ namespace Common.Settings
         public void Reset(SettingsContext context)
         {
             // Get the current version number
-            string version = getCurrentVersionNumber();
+            var version = GetCurrentVersionNumber();
 
             // Open the data store
             var dataStore = OpenDataStore();
@@ -185,24 +186,21 @@ namespace Common.Settings
             var dataStore = OpenDataStore();
 
             // Get the previous version number
-            string previousVersion = getPreviousVersionNumber(dataStore);
+            var previousVersion = GetPreviousVersionNumber(dataStore);
 
             SettingsPropertyValue value;
 
             // If there is no previous version we have a return a setting with a null value
             if (string.IsNullOrEmpty(previousVersion))
             {
-                // Create a new property value
-                value = new SettingsPropertyValue(property);
-
-                // Set the property value to null
-                value.PropertyValue = null;
+                // Create a new property value with the value set to null
+                value = new SettingsPropertyValue(property) { PropertyValue = null };
 
                 return value;
             }
 
             // Return the value from the previous version
-            value = getPropertyValue(dataStore, property, previousVersion);
+            value = GetPropertyValue(dataStore, property, previousVersion);
 
             // Close the data store
             CloseDataStore(dataStore);
@@ -219,7 +217,7 @@ namespace Common.Settings
                 return;
 
             // Get the previous version number
-            string previousVersion = getPreviousVersionNumber(dataStore);
+            var previousVersion = GetPreviousVersionNumber(dataStore);
 
             // If there is no previous version number just do nothing
             if (string.IsNullOrEmpty(previousVersion))
@@ -229,28 +227,31 @@ namespace Common.Settings
             Reset(context);
 
             // Get the current version number
-            string currentVersion = getCurrentVersionNumber();
+            var currentVersion = GetCurrentVersionNumber();
 
             // Loop over each property
             foreach (SettingsProperty property in properties)
             {
                 // Get the previous value
-                SettingsPropertyValue previousValue = getPropertyValue(dataStore, property, previousVersion);
+                var previousValue = GetPropertyValue(dataStore, property, previousVersion);
 
                 // Set the current value if there was a previous value
                 if (previousValue.SerializedValue != null)
-                    setPropertyValue(dataStore, previousValue, currentVersion);
+                    SetPropertyValue(dataStore, previousValue, currentVersion);
             }
 
-            // Get a distinct list of version numbers 
-            List<string> versionList = GetVersionList(dataStore);
+            if (DeleteOldVersionsOnUpgrade)
+            {
+                // Get a distinct list of version numbers 
+                var versionList = GetVersionList(dataStore);
 
-            // Remove the current version
-            versionList.Remove(currentVersion);
+                // Remove the current version
+                versionList.Remove(currentVersion);
 
-            // Delete settings for anything left
-            foreach (string version in versionList)
-                DeleteSettingsForVersion(dataStore, version);
+                // Delete settings for anything left
+                foreach (var version in versionList)
+                    DeleteSettingsForVersion(dataStore, version);
+            }
 
             // Close the data store
             CloseDataStore(dataStore);
@@ -260,23 +261,25 @@ namespace Common.Settings
 
         #region Setting scope helpers
 
-        private bool isApplicationScoped(SettingsProperty property)
+        // ReSharper disable once UnusedMember.Local
+        private bool IsApplicationScoped(SettingsProperty property)
         {
-            return hasSettingScope(property, typeof(ApplicationScopedSettingAttribute));
+            return HasSettingScope(property, typeof(ApplicationScopedSettingAttribute));
         }
 
-        private bool isUserScoped(SettingsProperty property)
+        // ReSharper disable once UnusedMember.Local
+        private bool IsUserScoped(SettingsProperty property)
         {
-            return hasSettingScope(property, typeof(UserScopedSettingAttribute));
+            return HasSettingScope(property, typeof(UserScopedSettingAttribute));
         }
 
-        private bool hasSettingScope(SettingsProperty property, Type attributeType)
+        private bool HasSettingScope(SettingsProperty property, Type attributeType)
         {
             // Check if the setting is application scoped
-            bool isApplicationScoped = property.Attributes[typeof(ApplicationScopedSettingAttribute)] != null;
+            var isApplicationScoped = property.Attributes[typeof(ApplicationScopedSettingAttribute)] != null;
 
             // Check if the setting is user scoped
-            bool isUserScoped = property.Attributes[typeof(UserScopedSettingAttribute)] != null;
+            var isUserScoped = property.Attributes[typeof(UserScopedSettingAttribute)] != null;
 
             // Both user and application is not allowed
             if (isUserScoped && isApplicationScoped)
