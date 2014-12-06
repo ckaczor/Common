@@ -28,7 +28,7 @@ namespace Common.Update
 
         public static Version LocalVersion
         {
-            get { return Assembly.GetExecutingAssembly().GetName().Version; }
+            get { return Assembly.GetEntryAssembly().GetName().Version; }
         }
 
         public static bool CheckForUpdate()
