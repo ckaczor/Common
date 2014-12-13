@@ -19,10 +19,10 @@ namespace Common.Settings
 
         public delegate object OpenDataStoreDelegate();
         public delegate void CloseDataStoreDelegate(object dataStore);
-        public delegate string GetSettingValueDelegate(object dataStore, string name, string version);
-        public delegate void SetSettingValueDelegate(object dataStore, string name, string version, string value);
-        public delegate List<string> GetVersionListDelegate(object dataStore);
-        public delegate void DeleteSettingsForVersionDelegate(object dataStore, string version);
+        public delegate string GetSettingValueDelegate(object dataStore, string name, Version version);
+        public delegate void SetSettingValueDelegate(object dataStore, string name, Version version, string value);
+        public delegate List<Version> GetVersionListDelegate(object dataStore);
+        public delegate void DeleteSettingsForVersionDelegate(object dataStore, Version version);
 
         #endregion
 
@@ -61,7 +61,7 @@ namespace Common.Settings
             var values = new SettingsPropertyValueCollection();
 
             // Get the current version number
-            var version = GetCurrentVersionNumber();
+            var version = GetCurrentVersion();
 
             // Open the data store
             var dataStore = OpenDataStore();
@@ -85,7 +85,7 @@ namespace Common.Settings
         public override void SetPropertyValues(SettingsContext context, SettingsPropertyValueCollection properties)
         {
             // Get the current version number
-            var version = GetCurrentVersionNumber();
+            var version = GetCurrentVersion();
 
             // Open the data store
             var dataStore = OpenDataStore();
@@ -109,27 +109,21 @@ namespace Common.Settings
 
         #region Version numbers
 
-        private static string GetCurrentVersionNumber()
+        private static Version GetCurrentVersion()
         {
-            return Assembly.GetEntryAssembly().GetName().Version.ToString();
+            return Assembly.GetEntryAssembly().GetName().Version;
         }
 
-        private string GetPreviousVersionNumber(object dataStore)
+        private Version GetPreviousVersion(object dataStore)
         {
             // Get the current version number
-            var currentVersion = GetCurrentVersionNumber();
+            var currentVersion = GetCurrentVersion();
 
             // Get a distinct list of version numbers 
             var versionList = GetVersionList(dataStore);
 
-            // Remove the current version
-            versionList.Remove(currentVersion);
-
-            // Remove the empty version for the database version
-            versionList.Remove(string.Empty);
-
             // Sort the list using the Version object and get the first value
-            var previousVersion = versionList.OrderByDescending(v => new Version(v)).FirstOrDefault();
+            var previousVersion = versionList.Where(v => v < currentVersion).OrderByDescending(v => v).FirstOrDefault();
 
             return previousVersion;
         }
@@ -138,7 +132,7 @@ namespace Common.Settings
 
         #region Value get and set
 
-        private SettingsPropertyValue GetPropertyValue(object dataStore, SettingsProperty property, string version)
+        private SettingsPropertyValue GetPropertyValue(object dataStore, SettingsProperty property, Version version)
         {
             // Create the value for the property
             var value = new SettingsPropertyValue(property);
@@ -155,7 +149,7 @@ namespace Common.Settings
             return value;
         }
 
-        private void SetPropertyValue(object dataStore, SettingsPropertyValue value, string version)
+        private void SetPropertyValue(object dataStore, SettingsPropertyValue value, Version version)
         {
             // Set the value for this version
             SetSettingValue(dataStore, value.Property.Name, version, value.SerializedValue.ToString());
@@ -168,7 +162,7 @@ namespace Common.Settings
         public void Reset(SettingsContext context)
         {
             // Get the current version number
-            var version = GetCurrentVersionNumber();
+            var version = GetCurrentVersion();
 
             // Open the data store
             var dataStore = OpenDataStore();
@@ -186,12 +180,12 @@ namespace Common.Settings
             var dataStore = OpenDataStore();
 
             // Get the previous version number
-            var previousVersion = GetPreviousVersionNumber(dataStore);
+            var previousVersion = GetPreviousVersion(dataStore);
 
             SettingsPropertyValue value;
 
             // If there is no previous version we have a return a setting with a null value
-            if (string.IsNullOrEmpty(previousVersion))
+            if (previousVersion == null)
             {
                 // Create a new property value with the value set to null
                 value = new SettingsPropertyValue(property) { PropertyValue = null };
@@ -217,17 +211,17 @@ namespace Common.Settings
                 return;
 
             // Get the previous version number
-            var previousVersion = GetPreviousVersionNumber(dataStore);
+            var previousVersion = GetPreviousVersion(dataStore);
 
             // If there is no previous version number just do nothing
-            if (string.IsNullOrEmpty(previousVersion))
+            if (previousVersion == null)
                 return;
 
             // Delete everything for the current version
             Reset(context);
 
             // Get the current version number
-            var currentVersion = GetCurrentVersionNumber();
+            var currentVersion = GetCurrentVersion();
 
             // Loop over each property
             foreach (SettingsProperty property in properties)
@@ -245,10 +239,10 @@ namespace Common.Settings
                 // Get a distinct list of version numbers 
                 var versionList = GetVersionList(dataStore);
 
-                // Remove the current version
-                versionList.Remove(currentVersion);
+                // Get everything before the current version
+                versionList = versionList.Where(v => v < currentVersion).ToList();
 
-                // Delete settings for anything left
+                // Delete settings for anything in the list
                 foreach (var version in versionList)
                     DeleteSettingsForVersion(dataStore, version);
             }
