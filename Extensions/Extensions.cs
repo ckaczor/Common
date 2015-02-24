@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,6 +41,13 @@ namespace Common.Extensions
                 if (b) return task.Result;
                 return default(T);
             });
+        }
+
+        public static bool IsBetween<T>(this T item, T start, T end, bool inclusive = false)
+        {
+            return inclusive ?
+                Comparer<T>.Default.Compare(item, start) >= 0 && Comparer<T>.Default.Compare(item, end) <= 0 :
+                Comparer<T>.Default.Compare(item, start) > 0 && Comparer<T>.Default.Compare(item, end) < 0;
         }
     }
 }
