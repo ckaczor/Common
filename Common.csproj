@@ -221,7 +221,4 @@
     <VisualStudio>
     </VisualStudio>
   </ProjectExtensions>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <PostBuildEvent>D:\Code\Personal\Versioner\bin\Release\Versioner.exe "$(ProjectDir)Properties\AssemblyInfo.cs" 2</PostBuildEvent>
-  </PropertyGroup>
 </Project>
