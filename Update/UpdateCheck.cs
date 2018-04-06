@@ -8,6 +8,12 @@ using System.Threading.Tasks;
 
 namespace Common.Update
 {
+    public enum ServerType
+    {
+        Generic,
+        GitHub
+    }
+
     public static class UpdateCheck
     {
         public delegate void ApplicationShutdownDelegate();
@@ -18,6 +24,7 @@ namespace Common.Update
         public static ApplicationCurrentMessageDelegate ApplicationCurrentMessage = null;
         public static ApplicationUpdateMessageDelegate ApplicationUpdateMessage = null;
 
+        public static ServerType UpdateServerType;
         public static string UpdateServer;
         public static string UpdateFile;
         public static string ApplicationName { get; set; }
@@ -26,14 +33,11 @@ namespace Common.Update
         public static string LocalInstallFile { get; private set; }
         public static bool UpdateAvailable { get; private set; }
 
-        public static Version LocalVersion
-        {
-            get { return Assembly.GetEntryAssembly().GetName().Version; }
-        }
+        public static Version LocalVersion => Assembly.GetEntryAssembly().GetName().Version;
 
         public static bool CheckForUpdate()
         {
-            RemoteVersion = VersionInfo.Load(UpdateServer, UpdateFile);
+            RemoteVersion = VersionInfo.Load(UpdateServerType, UpdateServer, UpdateFile);
 
             if (RemoteVersion == null)
                 return false;

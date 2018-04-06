@@ -170,6 +170,7 @@
     <Compile Include="Trace\Tracer.cs" />
     <Compile Include="Settings\Extensions.cs" />
     <Compile Include="Settings\GenericSettingsProvider.cs" />
+    <Compile Include="Update\GitHubRelease.cs" />
     <Compile Include="Update\UpdateCheck.cs" />
     <Compile Include="Update\VersionInfo.cs" />
     <Compile Include="Xml\XmlExtensions.cs" />
@@ -218,6 +219,11 @@
   <ItemGroup>
     <None Include="LICENSE.md" />
     <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>11.0.2</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>
