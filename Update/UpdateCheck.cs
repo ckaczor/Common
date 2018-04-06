@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -55,13 +56,15 @@ namespace Common.Update
             if (RemoteVersion == null)
                 return false;
 
-            var remoteFile = UpdateServer + RemoteVersion.InstallFile;
+            var remoteFile = UpdateServerType == ServerType.GitHub ? RemoteVersion.InstallFile : UpdateServer + RemoteVersion.InstallFile;
 
-            LocalInstallFile = Path.Combine(Path.GetTempPath(), RemoteVersion.InstallFile);
+            var remoteUri = new Uri(remoteFile);
+
+            LocalInstallFile = Path.Combine(Path.GetTempPath(), remoteUri.Segments.Last());
 
             var webClient = new WebClient();
 
-            await webClient.DownloadFileTaskAsync(new Uri(remoteFile), LocalInstallFile);
+            await webClient.DownloadFileTaskAsync(remoteUri, LocalInstallFile);
 
             return true;
         }
