@@ -42,8 +42,12 @@ namespace Common.Settings
         public static void BackupSettings()
         {
             var settingsFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal).FilePath;
-            var destination = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\..\last.config";
-            File.Copy(settingsFile, destination, true);
+
+            if (File.Exists(settingsFile))
+            {
+                var destination = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\..\last.config";
+                File.Copy(settingsFile, destination, true);
+            }
         }
 
         public static void RestoreSettings()
